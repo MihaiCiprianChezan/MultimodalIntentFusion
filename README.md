@@ -374,5 +374,150 @@ This is not just a UX improvement.
 It is the next interface paradigm.  
 It is the beginning of direct, natural, complete human‑AI communication.
 
-The door is ready to open.  
+The door is ready to open.
 The hinge now needs to be built.
+
+---
+
+# **Experiments: Current Implementation**
+
+## **⚠️ Disclaimer: Proof-of-Concept, Not Production-Ready**
+
+This is an **experimental implementation** demonstrating the core concepts of Multimodal Intent Fusion. It is **not a full-featured product** and should be treated as a research prototype.
+
+---
+
+## **What This Implementation Does**
+
+The current codebase demonstrates a working pipeline that:
+
+1. **Captures multimodal input** from the user:
+   - 🎤 **Speech** → Transcribed to text using `faster-whisper` (local, free)
+   - 🎵 **Prosody** → Analyzes pitch, energy, and tempo using `librosa`
+   - 😊 **Facial emotion** → Detects expressions using `deepface`
+   - 👋 **Gestures** → Recognizes hand shapes using OpenCV
+
+2. **Analyzes emotional context**:
+   - Combines audio prosody features with facial expressions
+   - Classifies emotions: happy, sad, angry, worried, neutral
+   - Assigns confidence scores to each detection
+
+3. **Compiles intent** using an LLM:
+   - Takes messy spoken input + emotional context
+   - Uses a local LLM (llama.cpp or Ollama) to clean and restructure the prompt
+   - **Bakes emotional tone into the output** (not appended as metadata)
+   - Example: "Listen, I need you to help me right now" (worried tone) → "Please urgently help me with this"
+
+4. **Provides an interactive demo** (`examples/interactive_demo.py`):
+   - Real-time capture from microphone and webcam
+   - Live display of all detected signals
+   - Shows the compiled intent with emotional context integrated
+
+---
+
+## **How to Run the Experiment**
+
+### **Prerequisites**
+- Python 3.10+
+- Microphone and webcam (optional, but recommended)
+- Local LLM server running (llama.cpp or Ollama)
+
+### **Setup**
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start a local LLM server (example with llama.cpp)
+# Using DeepSeek-R1 8B or similar for best results
+./llama-server.exe -m "path/to/model.gguf" --port 8082 -c 4096 -ngl 99
+```
+
+### **Run the Interactive Demo**
+```bash
+python examples/interactive_demo.py
+```
+
+The demo will:
+- Prompt you to press ENTER to start recording
+- Capture 5 seconds of audio + video
+- Display detected emotions, prosody, and gestures
+- Show the compiled intent with emotional tone integrated
+
+---
+
+## **Current Limitations**
+
+- ✅ **Speech-to-text**: Works well (faster-whisper)
+- ✅ **Prosody analysis**: Basic but functional (librosa)
+- ⚠️ **Emotion detection**: Decent accuracy, but can be confused (DeepFace + SER models)
+- ⚠️ **Gesture recognition**: Simple OpenCV-based (not as accurate as MediaPipe)
+- ⚠️ **LLM quality**: Depends on model size (8B+ recommended, smaller models hallucinate)
+- ❌ **Gesture detection on Windows**: MediaPipe dependency conflicts resolved with OpenCV fallback
+
+---
+
+## **Known Issues & Workarounds**
+
+| Issue | Status | Workaround |
+|-------|--------|-----------|
+| MediaPipe Windows errors | ✅ Fixed | Using OpenCV-based gesture detection |
+| Dependency conflicts (protobuf) | ✅ Fixed | Pinned `protobuf==4.25.3` |
+| whispercpp broken on Windows | ✅ Fixed | Switched to `faster-whisper` |
+| Small LLM models hallucinate | ⚠️ Mitigated | Use 8B+ models (DeepSeek-R1, Mistral, Llama 3) |
+| Emotion detection accuracy | ⚠️ Inherent | Models have limitations; treat as hints not facts |
+
+---
+
+## **What's NOT Implemented**
+
+- ❌ Persistent storage of audio/video
+- ❌ Training on user data
+- ❌ Advanced gesture vocabulary (only basic shapes)
+- ❌ Multi-language support
+- ❌ Real-time streaming to cloud
+- ❌ Production-grade error handling
+- ❌ Comprehensive testing suite
+
+---
+
+## **Next Steps for Production**
+
+To turn this into a production system, you would need:
+
+1. **Better emotion models** → Fine-tune on domain-specific data
+2. **Improved gesture recognition** → Use MediaPipe with proper dependency management or alternative libraries
+3. **Latency optimization** → Quantize models, use GPU acceleration
+4. **Privacy infrastructure** → Implement secure local processing, encryption
+5. **UX refinement** → Add correction UI, confidence indicators, literal mode
+6. **Comprehensive testing** → Unit tests, integration tests, user studies
+7. **Accessibility** → Support for users with speech/motor challenges
+
+---
+
+## **Running Tests**
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test
+python -m pytest tests/test_multimodal.py -v
+```
+
+---
+
+## **Contributing**
+
+This is an experimental project. If you want to improve it:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests to ensure nothing breaks
+5. Submit a pull request
+
+---
+
+## **License**
+
+MIT License - See LICENSE file for details

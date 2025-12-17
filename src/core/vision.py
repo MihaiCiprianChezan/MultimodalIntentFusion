@@ -2,18 +2,17 @@
 
 from typing import Optional, List, Tuple
 import numpy as np
-import os
-import urllib.request
 
 from src.core.models import GestureType
 
 
 class GestureRecognizer:
-    """Recognize hand gestures using MediaPipe Tasks API."""
+    """
+    Recognize hand gestures using OpenCV-based skin detection.
 
-    # Model URL for hand landmarker
-    MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
-    MODEL_PATH = os.path.join(os.path.dirname(__file__), "hand_landmarker.task")
+    This is a simple fallback that doesn't require MediaPipe (which has
+    dependency conflicts with TensorFlow on Windows).
+    """
 
     def __init__(self, max_hands: int = 2, min_detection_confidence: float = 0.5):
         """
@@ -25,49 +24,23 @@ class GestureRecognizer:
         """
         self.max_hands = max_hands
         self.min_detection_confidence = min_detection_confidence
-        self._landmarker = None
-        self._last_result = None
+        self._cv2 = None
 
-    def _download_model(self):
-        """Download the hand landmarker model if not present."""
-        if not os.path.exists(self.MODEL_PATH):
-            print(f"📥 Downloading hand landmarker model...")
-            urllib.request.urlretrieve(self.MODEL_URL, self.MODEL_PATH)
-            print(f"✅ Model downloaded to {self.MODEL_PATH}")
-
-    def _load_mediapipe(self):
-        """Lazy load MediaPipe Hand Landmarker."""
-        if self._landmarker is None:
+    def _load_opencv(self):
+        """Lazy load OpenCV."""
+        if self._cv2 is None:
             try:
-                import mediapipe as mp
-                from mediapipe.tasks import python
-                from mediapipe.tasks.python import vision
-
-                # Download model if needed
-                self._download_model()
-
-                # Create hand landmarker
-                base_options = python.BaseOptions(model_asset_path=self.MODEL_PATH)
-                options = vision.HandLandmarkerOptions(
-                    base_options=base_options,
-                    num_hands=self.max_hands,
-                    min_hand_detection_confidence=self.min_detection_confidence,
-                    min_hand_presence_confidence=self.min_detection_confidence,
-                    min_tracking_confidence=self.min_detection_confidence,
-                    running_mode=vision.RunningMode.IMAGE
-                )
-                self._landmarker = vision.HandLandmarker.create_from_options(options)
-                self._mp = mp
-
-            except ImportError as e:
+                import cv2
+                self._cv2 = cv2
+            except ImportError:
                 raise ImportError(
-                    f"mediapipe not installed correctly. Install with: pip install mediapipe\nError: {e}"
+                    "opencv-python not installed. Install with: pip install opencv-python"
                 )
-        return self._landmarker
+        return self._cv2
 
     def detect(self, frame: np.ndarray) -> List[str]:
         """
-        Detect gestures in video frame.
+        Detect gestures in video frame using skin color detection.
 
         Args:
             frame: Video frame as numpy array (BGR format)
@@ -75,33 +48,91 @@ class GestureRecognizer:
         Returns:
             List of detected gesture names
         """
-        try:
-            import cv2
-        except ImportError:
-            raise ImportError(
-                "opencv-python not installed. Install with: pip install opencv-python"
-            )
+        cv2 = self._load_opencv()
 
-        landmarker = self._load_mediapipe()
+        # Convert to HSV for skin detection
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Skin color range in HSV (works for various skin tones)
+        lower_skin = np.array([0, 20, 70], dtype=np.uint8)
+        upper_skin = np.array([20, 255, 255], dtype=np.uint8)
 
-        # Create MediaPipe Image
-        mp_image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb_frame)
+        # Create mask for skin regions
+        mask = cv2.inRange(hsv, lower_skin, upper_skin)
 
-        # Detect hands
-        result = landmarker.detect(mp_image)
-        self._last_result = result
+        # Clean up the mask
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.erode(mask, kernel, iterations=1)
+        mask = cv2.dilate(mask, kernel, iterations=2)
+        mask = cv2.GaussianBlur(mask, (5, 5), 0)
+
+        # Find contours (potential hands)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         gestures = []
-        if result.hand_landmarks:
-            for hand_landmarks in result.hand_landmarks:
-                gesture = self._classify_gesture(hand_landmarks)
+
+        # Process the largest contours (likely hands)
+        if contours:
+            # Sort by area, largest first
+            sorted_contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+            for contour in sorted_contours[:self.max_hands]:
+                area = cv2.contourArea(contour)
+
+                # Filter by minimum area (hand should be reasonably large)
+                if area < 5000:
+                    continue
+
+                # Analyze the contour shape
+                gesture = self._classify_contour(contour, cv2)
                 if gesture:
                     gestures.append(gesture)
 
         return gestures
+
+    def _classify_contour(self, contour, cv2) -> Optional[str]:
+        """
+        Classify gesture based on contour analysis.
+
+        Uses convexity defects to count fingers.
+        """
+        # Get convex hull
+        hull = cv2.convexHull(contour, returnPoints=False)
+
+        if len(hull) < 3:
+            return None
+
+        try:
+            # Find convexity defects
+            defects = cv2.convexityDefects(contour, hull)
+
+            if defects is None:
+                return GestureType.FIST.value
+
+            # Count significant defects (spaces between fingers)
+            finger_count = 0
+            for i in range(defects.shape[0]):
+                s, e, f, d = defects[i, 0]
+
+                # d is the distance from the farthest point to the hull
+                # Large distances indicate spaces between fingers
+                if d > 10000:  # Threshold for significant defect
+                    finger_count += 1
+
+            # Classify based on finger count
+            if finger_count == 0:
+                return GestureType.FIST.value
+            elif finger_count == 1:
+                return GestureType.POINTING.value
+            elif finger_count == 2:
+                return GestureType.PEACE.value
+            elif finger_count >= 4:
+                return GestureType.OPEN_PALM.value
+            else:
+                return None
+
+        except Exception:
+            return None
 
     def _classify_gesture(self, hand_landmarks) -> Optional[str]:
         """
