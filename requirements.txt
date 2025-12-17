@@ -1,0 +1,35 @@
+# MultimodalIntentFusion - Dependencies
+# Core Speech-to-Text
+whispercpp==0.0.17
+
+# Audio Processing & Prosody Analysis
+librosa>=0.10.0
+soundfile>=0.12.0
+sounddevice>=0.4.6
+scipy>=1.11.0
+numpy>=1.24.0
+
+# Emotion Detection (Audio)
+scikit-learn>=1.3.0
+
+# Facial Expression & Vision
+opencv-python>=4.8.0
+deepface>=0.0.79
+mediapipe>=0.10.0
+
+# LLM Integration (Local)
+ollama>=0.1.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+rich>=13.0.0
+click>=8.1.0
+
+# Optional: TensorFlow for custom emotion models
+# tensorflow>=2.13.0
+
+# Optional: PyTorch alternative
+# torch>=2.0.0
+# torchaudio>=2.0.0
+
