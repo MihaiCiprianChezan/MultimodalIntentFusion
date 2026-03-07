@@ -45,7 +45,7 @@ The key architectural choice: intent fusion happens **before** the AI, not insid
 AI capability has advanced dramatically, but the interface has not kept pace in tooling and infrastructure. Three forces make this the right moment:
 
 ### **1. End-to-end multimodal models exist — but aren't universally accessible.**
-GPT-4o processes audio, vision, and text in a single neural network. It can hear tone and emotion directly — without transcription as an intermediary. But this capability is cloud-only, API-gated, and not portable to local or embedded deployments. The vast majority of AI tools, enterprise systems, agentic frameworks, and embedded devices still receive text. A universal intent compilation layer that works regardless of the receiving system's modality support is still missing.
+Modern AI models can processes audio, vision, and text in a single neural network. Can hear tone and emotion directly — without transcription as an intermediary. But this capability is cloud-only, API-gated, and not portable to local or embedded deployments. The vast majority of AI tools, enterprise systems, agentic frameworks, and embedded devices still receive text. A universal intent compilation layer that works regardless of the receiving system's modality support is still missing.
 
 ### **2. Voice interfaces still treat speech as text.**
 Even in 2026, most voice pipelines follow the STT→LLM→TTS cascade: transcribe, then reason, then speak. The cascade discards prosodic and paralinguistic signals. The model that reasons never hears the original audio. Anger, urgency, hesitation, enthusiasm — gone at the transcription step.
