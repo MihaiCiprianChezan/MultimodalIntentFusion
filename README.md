@@ -3,8 +3,8 @@
 # **Multimodal Intent Fusion: Opening the Door Between Humans and AI**
 *Concept Document*
 
-> **Version 2.0 — March 2026**
-> Updated to reflect: multimodal architecture and the end of the STT→LLM→TTS pipeline paradigm; the EU AI Act emotion recognition regulatory framework (prohibitions active February 2025, high-risk rules August 2026); state-of-the-art on-device speech models (Whisper-Turbo, Granite-Speech-3.3, Distil-Whisper); MediaPipe Tasks API for on-device vision; and the convergence of edge AI with privacy-first multimodal design.
+> **Version 2.1 — July 2026**
+> Updated for the **Digital Omnibus on AI** (Council final approval 29 June 2026), which defers the EU AI Act's high-risk (Annex III) obligations for emotion recognition systems from 2 August 2026 to **2 December 2027** — while leaving the **Article 5 prohibition** (emotion recognition in workplace/education, active since 2 February 2025) and the **Article 50 transparency** obligation (still 2 August 2026) untouched. Retains the v2.0 coverage of multimodal architecture and the end of the STT→LLM→TTS pipeline paradigm; on-device speech models (Whisper-Turbo, Granite-Speech-3.3, Distil-Whisper); the MediaPipe Tasks API for on-device vision; and the convergence of edge AI with privacy-first multimodal design.
 
 ---
 
@@ -40,7 +40,7 @@ The key architectural choice: intent fusion happens **before** the AI, not insid
 
 ---
 
-## **3. Why This Matters Now (March 2026)**
+## **3. Why This Matters Now (2026)**
 
 AI capability has advanced dramatically, but the interface has not kept pace in tooling and infrastructure. Three forces make this the right moment:
 
@@ -87,7 +87,7 @@ It handles:
 
 This alone dramatically improves voice-based AI interactions, and is the only layer that is always active.
 
-**2026 implementation note**: Whisper-Turbo (low-latency streaming) and Distil-Whisper are the recommended local ASR choices. IBM's Granite-Speech-3.3 leads accuracy benchmarks for clean speech at 8.18% WER. For resource-constrained edge deployments, Vosk runs entirely offline with no cloud dependency. All of these can be combined with a small local LLM (8B+) for intent restructuring.
+**Implementation note (as of mid-2026)**: Whisper-Turbo (low-latency streaming) and Distil-Whisper remain solid local ASR choices; IBM's Granite-Speech-3.3 led clean-speech accuracy benchmarks at 8.18% WER. For resource-constrained edge deployments, Vosk runs entirely offline with no cloud dependency. The specific model matters less than the architecture — any current on-device ASR can feed a small local LLM (8B-class) for intent restructuring.
 
 ---
 
@@ -248,7 +248,9 @@ Clearer communication with AI tools, assistants, and automation systems. Less ti
 
 ## **9. EU AI Act Compliance**
 
-This section is new in v2.0 and is essential reading for any European deployment.
+This section is essential reading for any European deployment.
+
+> **Timeline note (v2.1, July 2026):** The **Digital Omnibus on AI** (Council final approval 29 June 2026) restructured the AI Act's application dates. For this system the split matters: the **Article 5 prohibition** on emotion recognition in workplace/education (active since 2 February 2025) is **unchanged**, the **Article 50 transparency** obligation still applies from **2 August 2026**, and only the **high-risk (Annex III) obligations** were deferred — from 2 August 2026 to **2 December 2027** (product-embedded Annex I systems: 2 August 2028). The two constraints this system depends on most — the prohibition and the transparency duty — are therefore untouched; only the high-risk compliance runway is longer.
 
 ### **What is regulated**
 
@@ -266,20 +268,20 @@ Exceptions exist only for strictly medical or safety purposes (e.g., fatigue det
 
 **Practical implication**: Phase 3 of this system must be disabled by default in any workplace or educational deployment in the EU. This is a hard architectural requirement, not a preference. Violations carry fines up to €35 million or 7% of global annual turnover.
 
-### **High-risk classification (rules active August 2, 2026)**
+### **High-risk classification (rules active December 2, 2027)**
 
-In all other permitted contexts, emotion recognition systems are classified as **high-risk** under Annex III. High-risk obligations include:
+In all other permitted contexts, emotion recognition systems are classified as **high-risk** under Annex III. Under the Digital Omnibus (adopted June 2026), these obligations now apply from **2 December 2027** (deferred from 2 August 2026); the deferral is paired with a high-risk registration database and expanded AI Office investigatory powers, so the runway is longer but structured, not removed. High-risk obligations include:
 
 - Risk management system documentation
 - Data governance and quality controls
 - Technical documentation and logging
 - Human oversight mechanisms
 - Conformity assessment before deployment
-- Registration in the EU AI Office database
+- Registration in the EU AI Office high-risk database
 
-### **Article 50 transparency obligation (active August 2, 2026)**
+### **Article 50 transparency obligation (active August 2, 2026 — not deferred)**
 
-Deployers of emotion recognition systems must inform users of the system's operation. This maps directly to the consent UI required by this system's design — the obligation is met by the active indicator and per-session consent mechanism already specified in Section 5.
+Deployers of emotion recognition systems must inform users of the system's operation. The Digital Omnibus did **not** defer this obligation — it still applies from 2 August 2026, ahead of the high-risk obligations above. This maps directly to the consent UI required by this system's design — the obligation is met by the active indicator and per-session consent mechanism already specified in Section 5.
 
 ### **What is NOT regulated**
 
@@ -476,7 +478,9 @@ The current codebase demonstrates a working pipeline that:
 pip install -r requirements.txt
 
 # Start a local LLM server (example with llama.cpp)
-# 8B+ models recommended: Llama 3.1 8B, Mistral 7B, DeepSeek-R1 8B
+# 8B-class instruction models recommended — any current-generation local model
+# from the Llama, Qwen, Gemma, or Mistral families works; the intent compiler is
+# model-agnostic.
 ./llama-server.exe -m "path/to/model.gguf" --port 8082 -c 4096 -ngl 99
 ```
 
